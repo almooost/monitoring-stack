@@ -1,0 +1,47 @@
+---
+- name: Set up monitoring stack directory structure
+  hosts: all
+  gather_facts: yes
+  become: yes
+
+  pre_tasks:
+    - name: Display monitoring stack version
+      debug:
+        msg: "Deploying Monitoring Stack v1.0.0 for {{ customer_name }}"
+
+    - name: Update system packages
+      apt:
+        update_cache: yes
+        cache_valid_time: 3600
+      when: ansible_os_family == "Debian"
+
+  roles:
+    - docker_setup
+    - prometheus
+    - snmp_exporter
+    - blackbox_exporter
+    - node_exporter
+    - alertmanager
+    - vmagent
+    - grafana
+
+  post_tasks:
+    - name: Wait for services to be ready
+      pause:
+        seconds: 10
+
+    - name: Display deployment summary
+      debug:
+        msg: |
+          Monitoring Stack Deployed Successfully!
+          Customer: {{ customer_name }}
+          
+          Services:
+          - Prometheus: http://{{ ansible_default_ipv4.address }}:9090
+          - Grafana: http://{{ ansible_default_ipv4.address }}:3000
+          - Alertmanager: http://{{ ansible_default_ipv4.address }}:9093
+          
+          Next Steps:
+          1. Configure Grafana dashboards
+          2. Update alert rules as needed
+          3. Test alert forwarding to central server

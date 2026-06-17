@@ -1,0 +1,49 @@
+---
+# Example inventory for deploying monitoring stack at a customer site
+# Copy and customize for each customer
+
+all:
+  hosts:
+    customer_a:
+      # Hostname or IP of the customer site server
+      ansible_host: 192.168.1.100
+      ansible_user: ansible
+      ansible_become: yes
+      
+      # Customer-specific variables
+      customer_name: customer_a
+      customer_id: CUST001
+      
+      # Central monitoring server details (where alerts are sent)
+      central_vm_server: monitoring.example.com:8428
+      central_vm_tenant: customer_a
+      central_vm_token: "{{ vault_central_vm_token }}"
+      
+      # Local monitoring configuration
+      prometheus_retention: 45d
+      prometheus_scrape_interval: 30s
+      prometheus_evaluation_interval: 30s
+      
+      # Alert manager configuration
+      alertmanager_slack_webhook: "{{ vault_alertmanager_slack_webhook | default('') }}"
+      alertmanager_email_to: "ops@customer.com"
+      alertmanager_email_from: "monitoring@customer.com"
+      alertmanager_smtp_server: "smtp.example.com"
+      
+      # SNMP v3 configuration
+      snmp_auth_protocol: SHA
+      snmp_priv_protocol: AES
+      snmp_username: "{{ vault_snmp_username }}"
+      snmp_auth_passphrase: "{{ vault_snmp_auth_passphrase }}"
+      snmp_priv_passphrase: "{{ vault_snmp_priv_passphrase }}"
+      
+      # vmagent configuration
+      vmagent_pushgateway_url: "https://{{ central_vm_server }}/api/v1/push"
+      vmagent_heartbeat_interval: 300  # 5 minutes
+      vmagent_http_auth_username: "{{ vault_vmagent_username }}"
+      vmagent_http_auth_password: "{{ vault_vmagent_password }}"
+      
+  vars:
+    # Common variables for all hosts
+    docker_compose_version: "2.20.0"
+    timezone: UTC

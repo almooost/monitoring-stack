@@ -1,0 +1,32 @@
+---
+- name: Deploy alert rules
+  hosts: all
+  gather_facts: no
+  become: yes
+
+  tasks:
+    - name: Generate alert rules from templates
+      template:
+        src: "alert_rules_{{ item }}.yml.j2"
+        dest: "{{ volume_base_path }}/prometheus/rules/{{ item }}.yml"
+        owner: root
+        group: root
+        mode: '0644'
+        backup: yes
+      loop:
+        - proxmox
+        - esxi
+        - network
+        - system
+      register: alerts_result
+
+    - name: Reload Prometheus after alert update
+      docker_container:
+        name: prometheus
+        restart: yes
+      when: alerts_result.changed
+
+    - name: Display alerts deployment result
+      debug:
+        msg: "Alert rules deployed successfully"
+      when: alerts_result.changed

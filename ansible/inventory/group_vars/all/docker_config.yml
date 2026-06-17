@@ -1,0 +1,46 @@
+---
+# Docker configuration defaults
+# Customizable per customer via inventory
+
+docker_version: "24.0"
+docker_compose_version: "2.20.0"
+
+# Container restart policies
+docker_restart_policy: unless-stopped
+docker_restart_retries: 5
+
+# Resource limits (adjust based on customer infrastructure)
+resource_limits:
+  prometheus:
+    memory: 2g
+    cpus: "1.5"
+  grafana:
+    memory: 1g
+    cpus: "1"
+  snmp_exporter:
+    memory: 512m
+    cpus: "0.5"
+  blackbox_exporter:
+    memory: 256m
+    cpus: "0.25"
+  node_exporter:
+    memory: 128m
+    cpus: "0.25"
+  alertmanager:
+    memory: 512m
+    cpus: "0.5"
+  vmagent:
+    memory: 512m
+    cpus: "0.5"
+
+# Network configuration
+network_name: "monitoring"
+network_driver: bridge
+
+# Volume paths
+volume_base_path: "/opt/monitoring"
+volumes:
+  prometheus_data: "{{ volume_base_path }}/prometheus/data"
+  grafana_data: "{{ volume_base_path }}/grafana/data"
+  alertmanager_data: "{{ volume_base_path }}/alertmanager/data"
+  vmagent_data: "{{ volume_base_path }}/vmagent/data"

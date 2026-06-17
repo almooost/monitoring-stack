@@ -1,0 +1,26 @@
+---
+# Network and TLS configuration
+
+# TLS/SSL configuration
+tls_enabled: yes
+tls_cert_path: "/opt/monitoring/certs/server.crt"
+tls_key_path: "/opt/monitoring/certs/server.key"
+tls_ca_cert_path: "/opt/monitoring/certs/ca.crt"
+
+# Internal network
+internal_network: "172.20.0.0/16"
+
+# Port configuration
+ports:
+  prometheus: 9090
+  grafana: 3000
+  alertmanager: 9093
+  node_exporter: 9100
+  snmp_exporter: 9116
+  blackbox_exporter: 9115
+  vmagent: 8429
+
+# HTTP proxy (if needed)
+http_proxy: ""
+https_proxy: ""
+no_proxy: "localhost,127.0.0.1"

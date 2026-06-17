@@ -1,0 +1,32 @@
+---
+- name: Update monitoring targets
+  hosts: all
+  gather_facts: no
+  become: yes
+
+  tasks:
+    - name: Generate target files from templates
+      template:
+        src: "targets_{{ item }}.yml.j2"
+        dest: "{{ volume_base_path }}/prometheus/targets/{{ item }}.yml"
+        owner: root
+        group: root
+        mode: '0644'
+      loop:
+        - proxmox
+        - esxi
+        - network
+        - linux_vms
+        - windows_vms
+      register: targets_result
+
+    - name: Reload Prometheus after target update
+      docker_container:
+        name: prometheus
+        restart: yes
+      when: targets_result.changed
+
+    - name: Display update result
+      debug:
+        msg: "Targets updated successfully"
+      when: targets_result.changed

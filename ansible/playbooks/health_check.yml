@@ -1,0 +1,59 @@
+---
+- name: Health check monitoring stack
+  hosts: all
+  gather_facts: no
+  become: yes
+
+  tasks:
+    - name: Check all containers are running
+      docker_container_info:
+        name: "{{ item }}"
+      register: container_info
+      loop:
+        - prometheus
+        - grafana
+        - alertmanager
+        - node_exporter
+        - snmp_exporter
+        - blackbox_exporter
+        - vmagent
+
+    - name: Report container health
+      debug:
+        msg: |
+          Container: {{ item.item }}
+          Status: {{ item.container[0].State.Status }}
+      loop: "{{ container_info.results }}"
+      when: item.container is defined
+
+    - name: Test Prometheus health
+      uri:
+        url: "http://localhost:9090/-/healthy"
+        method: GET
+        status_code: 200
+      register: prometheus_health
+      ignore_errors: yes
+
+    - name: Test Grafana health
+      uri:
+        url: "http://localhost:3000/api/health"
+        method: GET
+        status_code: 200
+      register: grafana_health
+      ignore_errors: yes
+
+    - name: Test Alertmanager health
+      uri:
+        url: "http://localhost:9093/-/healthy"
+        method: GET
+        status_code: 200
+      register: alertmanager_health
+      ignore_errors: yes
+
+    - name: Display health check results
+      debug:
+        msg: |
+          Health Check Summary:
+          Prometheus: {{ 'OK' if prometheus_health.status == 200 else 'FAILED' }}
+          Grafana: {{ 'OK' if grafana_health.status == 200 else 'FAILED' }}
+          Alertmanager: {{ 'OK' if alertmanager_health.status == 200 else 'FAILED' }}

@@ -1,0 +1,48 @@
+---
+# Default monitoring configuration
+# Can be overridden per customer in host_vars
+
+prometheus:
+  scrape_interval: 30s
+  evaluation_interval: 30s
+  retention: 45d
+  retention_size: 50GB
+  external_labels:
+    cluster: "{{ customer_name | default('default') }}"
+    environment: "{{ environment | default('production') }}"
+
+alertmanager:
+  resolve_timeout: 5m
+  group_wait: 10s
+  group_interval: 10s
+  repeat_interval: 12h
+
+vmagent:
+  scrape_interval: 30s
+  heartbeat_interval: 300
+  metrics_path: /metrics
+  remote_write_max_batch_size: 1000
+  remote_write_flush_interval: 5s
+
+grafana:
+  admin_user: admin
+  admin_password: "{{ vault_grafana_admin_password | default('admin') }}"
+  auth_anonymous_enabled: "false"
+  users_allow_sign_up: "false"
+  log_level: info
+  
+snmp_exporter:
+  listen_address: "0.0.0.0:9116"
+  log_level: info
+
+blackbox_exporter:
+  listen_address: "0.0.0.0:9115"
+  modules:
+    - http
+    - https
+    - tcp
+    - icmp
+
+node_exporter:
+  listen_address: "0.0.0.0:9100"
+  textfile_collector_dir: "/var/lib/node_exporter/textfile_collector"

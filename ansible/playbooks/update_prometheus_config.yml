@@ -1,0 +1,27 @@
+---
+- name: Update Prometheus configuration
+  hosts: all
+  gather_facts: no
+  become: yes
+
+  tasks:
+    - name: Generate Prometheus config from template
+      template:
+        src: prometheus.yml.j2
+        dest: "{{ volume_base_path }}/prometheus/prometheus.yml"
+        owner: root
+        group: root
+        mode: '0644'
+        backup: yes
+      register: prom_config_result
+
+    - name: Reload Prometheus configuration
+      docker_container:
+        name: prometheus
+        restart: yes
+      when: prom_config_result.changed
+
+    - name: Display reload result
+      debug:
+        msg: "Prometheus configuration updated and reloaded"
+      when: prom_config_result.changed

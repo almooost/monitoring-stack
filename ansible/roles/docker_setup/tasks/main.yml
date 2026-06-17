@@ -1,0 +1,47 @@
+---
+- name: Install Docker and Docker Compose
+  apt:
+    name:
+      - docker.io
+      - docker-compose
+      - python3-docker
+    state: present
+    update_cache: yes
+
+- name: Enable Docker service
+  systemd:
+    name: docker
+    enabled: yes
+    state: started
+
+- name: Create monitoring directories
+  file:
+    path: "{{ item }}"
+    state: directory
+    mode: '0755'
+  loop:
+    - "{{ volume_base_path }}"
+    - "{{ volume_base_path }}/prometheus"
+    - "{{ volume_base_path }}/prometheus/data"
+    - "{{ volume_base_path }}/prometheus/targets"
+    - "{{ volume_base_path }}/prometheus/rules"
+    - "{{ volume_base_path }}/grafana/data"
+    - "{{ volume_base_path }}/grafana/provisioning"
+    - "{{ volume_base_path }}/alertmanager/data"
+    - "{{ volume_base_path }}/vmagent/data"
+    - "{{ volume_base_path }}/certs"
+
+- name: Create Docker network
+  docker_network:
+    name: "{{ network_name }}"
+    driver: "{{ network_driver }}"
+    ipam_config:
+      - subnet: "{{ internal_network }}"
+
+- name: Generate docker-compose.yml from template
+  template:
+    src: docker-compose.yml.j2
+    dest: "{{ volume_base_path }}/docker-compose.yml"
+    owner: root
+    group: root
+    mode: '0644'

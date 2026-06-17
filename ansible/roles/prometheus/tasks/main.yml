@@ -1,0 +1,50 @@
+---
+- name: Create Prometheus configuration
+  template:
+    src: prometheus.yml.j2
+    dest: "{{ volume_base_path }}/prometheus/prometheus.yml"
+    owner: root
+    group: root
+    mode: '0644'
+
+- name: Create target files from templates
+  template:
+    src: "targets_{{ item }}.yml.j2"
+    dest: "{{ volume_base_path }}/prometheus/targets/{{ item }}.yml"
+    owner: root
+    group: root
+    mode: '0644'
+  loop:
+    - proxmox
+    - esxi
+    - network
+    - linux_vms
+    - windows_vms
+
+- name: Pull Prometheus image
+  docker_image:
+    name: prom/prometheus:latest
+    state: present
+
+- name: Start Prometheus container
+  docker_container:
+    name: prometheus
+    image: prom/prometheus:latest
+    state: started
+    restart_policy: "{{ docker_restart_policy }}"
+    networks:
+      - name: "{{ network_name }}"
+    volumes:
+      - "{{ volume_base_path }}/prometheus/prometheus.yml:/etc/prometheus/prometheus.yml:ro"
+      - "{{ volume_base_path }}/prometheus/targets:/etc/prometheus/targets:ro"
+      - "{{ volume_base_path }}/prometheus/rules:/etc/prometheus/rules:ro"
+      - "{{ volume_base_path }}/prometheus/data:/prometheus"
+    ports:
+      - "9090:9090"
+    command:
+      - "--config.file=/etc/prometheus/prometheus.yml"
+      - "--storage.tsdb.path=/prometheus"
+      - "--storage.tsdb.retention.time={{ prometheus.retention }}"
+      - "--storage.tsdb.retention.size={{ prometheus.retention_size }}"
+    memory: "{{ resource_limits.prometheus.memory }}"
+    cpus: "{{ resource_limits.prometheus.cpus }}"

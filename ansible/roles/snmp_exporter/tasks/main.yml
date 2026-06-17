@@ -1,0 +1,36 @@
+---
+- name: Create SNMP exporter configuration
+  template:
+    src: snmp_exporter.yml.j2
+    dest: "{{ volume_base_path }}/snmp_exporter/snmp.yml"
+    owner: root
+    group: root
+    mode: '0644'
+
+- name: Create SNMP exporter directory
+  file:
+    path: "{{ volume_base_path }}/snmp_exporter"
+    state: directory
+    mode: '0755'
+
+- name: Pull SNMP exporter image
+  docker_image:
+    name: prom/snmp-exporter:latest
+    state: present
+
+- name: Start SNMP exporter container
+  docker_container:
+    name: snmp_exporter
+    image: prom/snmp-exporter:latest
+    state: started
+    restart_policy: "{{ docker_restart_policy }}"
+    networks:
+      - name: "{{ network_name }}"
+    volumes:
+      - "{{ volume_base_path }}/snmp_exporter/snmp.yml:/etc/snmp_exporter/snmp.yml:ro"
+    ports:
+      - "9116:9116"
+    command:
+      - "--config.file=/etc/snmp_exporter/snmp.yml"
+    memory: "{{ resource_limits.snmp_exporter.memory }}"
+    cpus: "{{ resource_limits.snmp_exporter.cpus }}"

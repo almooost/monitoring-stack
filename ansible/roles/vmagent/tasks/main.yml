@@ -1,0 +1,44 @@
+---
+- name: Create vmagent configuration
+  template:
+    src: vmagent_config.yml.j2
+    dest: "{{ volume_base_path }}/vmagent/vmagent_config.yml"
+    owner: root
+    group: root
+    mode: '0644'
+
+- name: Create vmagent directory
+  file:
+    path: "{{ volume_base_path }}/vmagent"
+    state: directory
+    mode: '0755'
+
+- name: Pull vmagent image
+  docker_image:
+    name: victoriametrics/vmagent:latest
+    state: present
+
+- name: Start vmagent container
+  docker_container:
+    name: vmagent
+    image: victoriametrics/vmagent:latest
+    state: started
+    restart_policy: "{{ docker_restart_policy }}"
+    networks:
+      - name: "{{ network_name }}"
+    volumes:
+      - "{{ volume_base_path }}/vmagent/vmagent_config.yml:/etc/vmagent/vmagent.yml:ro"
+      - "{{ volume_base_path }}/vmagent/data:/vmagent-data"
+    ports:
+      - "8429:8429"
+    env:
+      - "VMAGENT_remoteWrite_url={{ vmagent_pushgateway_url }}"
+      - "VMAGENT_remoteWrite_basicAuth_username={{ vmagent_http_auth_username }}"
+      - "VMAGENT_remoteWrite_basicAuth_password={{ vmagent_http_auth_password }}"
+    command:
+      - "-promscrape.config=/etc/vmagent/vmagent.yml"
+      - "-remoteWrite.url={{ vmagent_pushgateway_url }}"
+      - "-remoteWrite.basicAuth.username={{ vmagent_http_auth_username }}"
+      - "-remoteWrite.basicAuth.password={{ vmagent_http_auth_password }}"
+    memory: "{{ resource_limits.vmagent.memory }}"
+    cpus: "{{ resource_limits.vmagent.cpus }}"

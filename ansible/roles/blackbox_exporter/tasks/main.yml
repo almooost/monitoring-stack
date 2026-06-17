@@ -1,0 +1,36 @@
+---
+- name: Create Blackbox exporter configuration
+  template:
+    src: blackbox_exporter.yml.j2
+    dest: "{{ volume_base_path }}/blackbox_exporter/blackbox.yml"
+    owner: root
+    group: root
+    mode: '0644'
+
+- name: Create Blackbox exporter directory
+  file:
+    path: "{{ volume_base_path }}/blackbox_exporter"
+    state: directory
+    mode: '0755'
+
+- name: Pull Blackbox exporter image
+  docker_image:
+    name: prom/blackbox-exporter:latest
+    state: present
+
+- name: Start Blackbox exporter container
+  docker_container:
+    name: blackbox_exporter
+    image: prom/blackbox-exporter:latest
+    state: started
+    restart_policy: "{{ docker_restart_policy }}"
+    networks:
+      - name: "{{ network_name }}"
+    volumes:
+      - "{{ volume_base_path }}/blackbox_exporter/blackbox.yml:/etc/blackbox_exporter/config.yml:ro"
+    ports:
+      - "9115:9115"
+    command:
+      - "--config.file=/etc/blackbox_exporter/config.yml"
+    memory: "{{ resource_limits.blackbox_exporter.memory }}"
+    cpus: "{{ resource_limits.blackbox_exporter.cpus }}"

@@ -1,0 +1,38 @@
+---
+- name: Create Alertmanager configuration
+  template:
+    src: alertmanager.yml.j2
+    dest: "{{ volume_base_path }}/alertmanager/alertmanager.yml"
+    owner: root
+    group: root
+    mode: '0644'
+
+- name: Create Alertmanager directory
+  file:
+    path: "{{ volume_base_path }}/alertmanager"
+    state: directory
+    mode: '0755'
+
+- name: Pull Alertmanager image
+  docker_image:
+    name: prom/alertmanager:latest
+    state: present
+
+- name: Start Alertmanager container
+  docker_container:
+    name: alertmanager
+    image: prom/alertmanager:latest
+    state: started
+    restart_policy: "{{ docker_restart_policy }}"
+    networks:
+      - name: "{{ network_name }}"
+    volumes:
+      - "{{ volume_base_path }}/alertmanager/alertmanager.yml:/etc/alertmanager/alertmanager.yml:ro"
+      - "{{ volume_base_path }}/alertmanager/data:/alertmanager"
+    ports:
+      - "9093:9093"
+    command:
+      - "--config.file=/etc/alertmanager/alertmanager.yml"
+      - "--storage.path=/alertmanager"
+    memory: "{{ resource_limits.alertmanager.memory }}"
+    cpus: "{{ resource_limits.alertmanager.cpus }}"

@@ -1,0 +1,50 @@
+---
+- name: Create Grafana configuration
+  template:
+    src: grafana.ini.j2
+    dest: "{{ volume_base_path }}/grafana/grafana.ini"
+    owner: root
+    group: root
+    mode: '0644'
+
+- name: Create Grafana provisioning directories
+  file:
+    path: "{{ item }}"
+    state: directory
+    mode: '0755'
+  loop:
+    - "{{ volume_base_path }}/grafana/provisioning"
+    - "{{ volume_base_path }}/grafana/provisioning/dashboards"
+    - "{{ volume_base_path }}/grafana/provisioning/datasources"
+
+- name: Create Grafana datasource configuration
+  template:
+    src: grafana_datasource.yml.j2
+    dest: "{{ volume_base_path }}/grafana/provisioning/datasources/prometheus.yml"
+    owner: root
+    group: root
+    mode: '0644'
+
+- name: Pull Grafana image
+  docker_image:
+    name: grafana/grafana:latest
+    state: present
+
+- name: Start Grafana container
+  docker_container:
+    name: grafana
+    image: grafana/grafana:latest
+    state: started
+    restart_policy: "{{ docker_restart_policy }}"
+    networks:
+      - name: "{{ network_name }}"
+    volumes:
+      - "{{ volume_base_path }}/grafana/grafana.ini:/etc/grafana/grafana.ini:ro"
+      - "{{ volume_base_path }}/grafana/provisioning:/etc/grafana/provisioning:ro"
+      - "{{ volume_base_path }}/grafana/data:/var/lib/grafana"
+    ports:
+      - "3000:3000"
+    env:
+      - "GF_SECURITY_ADMIN_PASSWORD={{ grafana.admin_password }}"
+    memory: "{{ resource_limits.grafana.memory }}"
+    cpus: "{{ resource_limits.grafana.cpus }}"

@@ -1,0 +1,32 @@
+---
+- name: Create Node exporter directory
+  file:
+    path: "{{ volume_base_path }}/node_exporter"
+    state: directory
+    mode: '0755'
+
+- name: Pull Node exporter image
+  docker_image:
+    name: prom/node-exporter:latest
+    state: present
+
+- name: Start Node exporter container
+  docker_container:
+    name: node_exporter
+    image: prom/node-exporter:latest
+    state: started
+    restart_policy: "{{ docker_restart_policy }}"
+    networks:
+      - name: "{{ network_name }}"
+    ports:
+      - "9100:9100"
+    volumes:
+      - "/proc:/host/proc:ro"
+      - "/sys:/host/sys:ro"
+      - "/:/rootfs:ro"
+    command:
+      - "--path.procfs=/host/proc"
+      - "--path.sysfs=/host/sys"
+      - "--collector.filesystem.mount-points-exclude=^/(sys|proc|dev|host|etc)($$|/)"
+    memory: "{{ resource_limits.node_exporter.memory }}"
+    cpus: "{{ resource_limits.node_exporter.cpus }}"
